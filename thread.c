@@ -24,6 +24,7 @@ struct conn_queue_item {
     int               event_flags;
     int               read_buffer_size;
     enum network_transport     transport;
+    int               priority;
     CQ_ITEM          *next;
 };
 
@@ -332,6 +333,10 @@ static void setup_thread(LIBEVENT_THREAD *me) {
         exit(1);
     }
 
+#ifdef DUP_AWARE
+    event_priority_init(NUM_PRIORITIES);
+#endif
+
     /* Listen for notifications from other threads */
     event_set(&me->notify_event, me->notify_receive_fd,
               EV_READ | EV_PERSIST, thread_libevent_process, me);
@@ -398,7 +403,8 @@ static void thread_libevent_process(int fd, short which, void *arg) {
 
     if (NULL != item) {
         conn *c = conn_new(item->sfd, item->init_state, item->event_flags,
-                           item->read_buffer_size, item->transport, me->base);
+                           item->read_buffer_size, item->transport, me->base,
+                           item->priority);
         if (c == NULL) {
             if (IS_UDP(item->transport)) {
                 fprintf(stderr, "Can't listen for events on UDP socket\n");
@@ -447,12 +453,36 @@ void dispatch_conn_new(int sfd, enum conn_states init_state, int event_flags,
     LIBEVENT_THREAD *thread = threads + tid;
 
     last_thread = tid;
+#ifdef DUP_AWARE
+    fprintf(stderr, "last_thread = %d, tid = %d\n", last_thread, tid);
+#endif
 
     item->sfd = sfd;
     item->init_state = init_state;
     item->event_flags = event_flags;
     item->read_buffer_size = read_buffer_size;
     item->transport = transport;
+    item->priority = -1; // ignored unless DUP_AWARE
+
+#ifdef DUP_AWARE
+    if (!IS_UDP(transport)) {
+
+        /* Have we assigned all 4 priority connections yet? */
+        if (settings.num_threads != 4) {
+            fprintf(stderr, "settings.num_threads must be 4 for duplicate awareness"
+                    "to work in its current implementation. You specified %d"
+                    "threads.", settings.num_threads);
+            exit(1);
+        }
+
+        static int is_priority = 4;
+
+        // The first set of `num_thread` connections will all be primary, while any
+        // subsequent will be duplicate.
+        item->priority = (is_priority-- > 0) ? PRIMARY : DUPLICATE;
+        fprintf(stderr, "<%d item->priority is %s\n", sfd, (item->priority == PRIMARY) ? "PRIMARY" : "DUPLICATE");
+    }
+#endif
 
     cq_push(thread->new_conn_queue, item);
 

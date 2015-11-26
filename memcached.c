@@ -353,7 +353,7 @@ static const char *prot_text(enum protocol prot) {
 conn *conn_new(const int sfd, enum conn_states init_state,
                 const int event_flags,
                 const int read_buffer_size, enum network_transport transport,
-                struct event_base *base) {
+                struct event_base *base, const int priority) {
     conn *c;
 
     assert(sfd >= 0 && sfd < max_fds);
@@ -472,6 +472,13 @@ conn *conn_new(const int sfd, enum conn_states init_state,
     c->noreply = false;
 
     event_set(&c->event, sfd, event_flags, event_handler, (void *)c);
+
+#ifdef DUP_AWARE
+    event_priority_set(&c->event, priority);
+    fprintf(stderr, "<%d event priority is %s\n", sfd, (priority == PRIMARY) ? "PRIMARY" : "DUPLICATE");
+#else
+    (void)priority;
+#endif
     event_base_set(base, &c->event);
     c->ev_flags = event_flags;
 
@@ -4595,7 +4602,7 @@ static int server_socket(const char *interface,
         } else {
             if (!(listen_conn_add = conn_new(sfd, conn_listening,
                                              EV_READ | EV_PERSIST, 1,
-                                             transport, main_base))) {
+                                             transport, main_base, -1))) {
                 fprintf(stderr, "failed to create listening connection\n");
                 exit(EXIT_FAILURE);
             }
@@ -4742,7 +4749,7 @@ static int server_socket_unix(const char *path, int access_mask) {
     }
     if (!(listen_conn = conn_new(sfd, conn_listening,
                                  EV_READ | EV_PERSIST, 1,
-                                 local_transport, main_base))) {
+                                 local_transport, main_base, -1))) {
         fprintf(stderr, "failed to create listening connection\n");
         exit(EXIT_FAILURE);
     }

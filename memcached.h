@@ -23,6 +23,16 @@
 
 #include "sasl_defs.h"
 
+// This should be a compile time option but I do not want to mess with that
+// Makefile
+#define DUP_AWARE
+
+#ifdef DUP_AWARE
+#define NUM_PRIORITIES 2
+#define PRIMARY        0
+#define DUPLICATE      1
+#endif
+
 /** Maximum length of a key. */
 #define KEY_MAX_LENGTH 250
 
@@ -548,7 +558,7 @@ enum delta_result_type do_add_delta(conn *c, const char *key,
                                     const int64_t delta, char *buf,
                                     uint64_t *cas, const uint32_t hv);
 enum store_item_type do_store_item(item *item, int comm, conn* c, const uint32_t hv);
-conn *conn_new(const int sfd, const enum conn_states init_state, const int event_flags, const int read_buffer_size, enum network_transport transport, struct event_base *base);
+conn *conn_new(const int sfd, const enum conn_states init_state, const int event_flags, const int read_buffer_size, enum network_transport transport, struct event_base *base, const int priority);
 extern int daemonize(int nochdir, int noclose);
 
 #define mutex_lock(x) pthread_mutex_lock(x)
