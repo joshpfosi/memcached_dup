@@ -28,6 +28,7 @@
 #define DUP_AWARE
 
 #ifdef DUP_AWARE
+#define NUM_THREADS    4
 #define NUM_PRIORITIES 2
 #define PRIMARY        0
 #define DUPLICATE      1

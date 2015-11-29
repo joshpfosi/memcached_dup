@@ -467,15 +467,14 @@ void dispatch_conn_new(int sfd, enum conn_states init_state, int event_flags,
 #ifdef DUP_AWARE
     if (!IS_UDP(transport)) {
 
-        /* Have we assigned all 4 priority connections yet? */
-        if (settings.num_threads != 4) {
-            fprintf(stderr, "settings.num_threads must be 4 for duplicate awareness"
+        if (settings.num_threads != NUM_THREADS) {
+            fprintf(stderr, "settings.num_threads must be %d for duplicate awareness"
                     "to work in its current implementation. You specified %d"
-                    "threads.", settings.num_threads);
+                    "threads.", NUM_THREADS, settings.num_threads);
             exit(1);
         }
 
-        static int is_priority = 4;
+        static int is_priority = NUM_THREADS;
 
         // The first set of `num_thread` connections will all be primary, while any
         // subsequent will be duplicate.
