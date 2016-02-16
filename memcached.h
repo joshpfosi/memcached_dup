@@ -23,15 +23,17 @@
 
 #include "sasl_defs.h"
 
-// This should be a compile time option but I do not want to mess with that
-// Makefile
-#define DUP_AWARE
-
 #ifdef DUP_AWARE
-#define NUM_THREADS    4
+
+#if defined NUM_THREADS && NUM_THREADS > 0
+#else
+#error "NUM_THREADS must be defined if DUP_AWARE"
+#endif
+
 #define NUM_PRIORITIES 2
 #define PRIMARY        0
 #define DUPLICATE      1
+
 #endif
 
 /** Maximum length of a key. */

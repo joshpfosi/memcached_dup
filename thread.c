@@ -469,7 +469,7 @@ void dispatch_conn_new(int sfd, enum conn_states init_state, int event_flags,
 
         if (settings.num_threads != NUM_THREADS) {
             fprintf(stderr, "settings.num_threads must be %d for duplicate awareness"
-                    "to work in its current implementation. You specified %d"
+                    "to work in its current implementation. You specified %d "
                     "threads.", NUM_THREADS, settings.num_threads);
             exit(1);
         }
